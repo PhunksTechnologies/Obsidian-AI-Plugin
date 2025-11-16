@@ -1,0 +1,11 @@
+{
+  "id": "obsidian-ai-agent",
+  "name": "AI Agent",
+  "version": "0.1.0",
+  "minAppVersion": "1.16.0",
+  "author": "Andrey Belykh",
+  "description": "AI Agent",
+  "main": "main.js",
+  "repo": "",
+  "isDesktopOnly": false
+}
