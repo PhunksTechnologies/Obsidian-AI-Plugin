@@ -1,4 +1,4 @@
-const { Plugin, ItemView, PluginSettingTab, Setting, MarkdownRenderer } = require('obsidian');
+const { requestUrl, Plugin, ItemView, PluginSettingTab, Setting, MarkdownRenderer } = require('obsidian');
 
 const DEFAULT_SETTINGS = {
     provider: 'openrouter', // openrouter, ollama, groq, mistral, google
@@ -47,59 +47,143 @@ module.exports = class ObsidianAIAgent extends Plugin {
         this.app.workspace.revealLeaf(leaf);
     }
 
-    async askAI(prompt) {
-        const provider = this.settings.provider;
-        if (!provider) throw new Error('Unknown provider');
+    // async askAI(prompt) {
+    //     const provider = this.settings.provider;
+    //     if (!provider) throw new Error('Unknown provider');
 
-        let body = {
-            model: this.settings.model,
-            messages: [{ role: 'user', content: prompt }]
-        };
+    //     let body = {
+    //         model: this.settings.model,
+    //         messages: [{ role: 'user', content: prompt }]
+    //     };
 
-        const headers = { 'Content-Type': 'application/json' };
-        if (this.settings.apiKey) headers['Authorization'] = `Bearer ${this.settings.apiKey}`;
+    //     const headers = { 'Content-Type': 'application/json' };
+    //     if (this.settings.apiKey) headers['Authorization'] = `Bearer ${this.settings.apiKey}`;
 
-        let retries = 3;
-        while (retries > 0) {
-            try {
-                let response;
-                if (provider === 'ollama') {
-                    response = await fetch(`http://localhost:11434/v1/complete`, {
-                        method: 'POST',
-                        headers,
-                        body: JSON.stringify({ model: this.settings.model, prompt })
-                    });
-                } else {
-                    response = await fetch(this.settings.endpoint, {
-                        method: 'POST',
-                        headers,
-                        body: JSON.stringify(body)
-                    });
-                }
+    //     let retries = 3;
+    //     while (retries > 0) {
+    //         try {
+    //             let response;
+    //             if (provider === 'ollama') {
+    //                 response = await fetch(`http://localhost:11434/v1/complete`, {
+    //                     method: 'POST',
+    //                     headers,
+    //                     body: JSON.stringify({ model: this.settings.model, prompt })
+    //                 });
+    //             } else {
+    //                 response = await fetch(this.settings.endpoint, {
+    //                     method: 'POST',
+    //                     headers,
+    //                     body: JSON.stringify(body)
+    //                 });
+    //             }
 
-                if (!response.ok) {
-                    if (response.status === 429) {
-                        console.warn("429 Too Many Requests, retrying...");
-                        await new Promise(r => setTimeout(r, 2000));
-                        retries--;
-                        continue;
-                    } else if (response.status === 413) {
-                        return "Error: Payload too large. Context truncated.";
-                    } else {
-                        throw new Error(`AI HTTP Error: ${response.status}`);
-                    }
-                }
+    //             if (!response.ok) {
+    //                 if (response.status === 429) {
+    //                     console.warn("429 Too Many Requests, retrying...");
+    //                     await new Promise(r => setTimeout(r, 2000));
+    //                     retries--;
+    //                     continue;
+    //                 } else if (response.status === 413) {
+    //                     return "Error: Payload too large. Context truncated.";
+    //                 } else {
+    //                     throw new Error(`AI HTTP Error: ${response.status}`);
+    //                 }
+    //             }
 
-                const data = await response.json();
-                if (provider === 'ollama') return data?.completion || '';
-                return data?.choices?.[0]?.message?.content || '';
-            } catch (e) {
-                console.error("AI call error", e);
-                return `Error: ${e.message}`;
+    //             const data = await response.json();
+    //             if (provider === 'ollama') return data?.completion || '';
+    //             return data?.choices?.[0]?.message?.content || '';
+    //         } catch (e) {
+    //             console.error("AI call error", e);
+    //             return `Error: ${e.message}`;
+    //         }
+    //     }
+    //     return "Error: too many requests, try later";
+    // }    
+
+async askAI(prompt) {
+    const provider = this.settings.provider;
+    if (!provider) throw new Error('Unknown provider');
+
+    // --- Puter AI через CDN ---
+    if (provider === 'puter') {
+        try {
+            // Загружаем скрипт Puter, если ещё не загружен
+            if (!window.puter) {
+                await new Promise((resolve, reject) => {
+                    const script = document.createElement('script');
+                    script.src = 'https://js.puter.com/v2/';
+                    script.onload = resolve;
+                    script.onerror = reject;
+                    document.body.appendChild(script);
+                });
             }
+
+            // Используем Puter
+            const response = await window.puter.ai.chat(prompt, {
+                apiKey: this.settings.apiKey || '' // если нужен API ключ
+            });
+
+            // Проверяем ответ
+            return response?.output || response?.text || '';
+        } catch (e) {
+            console.error("Puter AI error", e);
+            return `Error: ${e.message}`;
         }
-        return "Error: too many requests, try later";
     }
+
+    // --- Остальные провайдеры ---
+    let body = {
+        model: this.settings.model,
+        messages: [{ role: 'user', content: prompt }]
+    };
+
+    const headers = { 'Content-Type': 'application/json' };
+    if (this.settings.apiKey) headers['Authorization'] = `Bearer ${this.settings.apiKey}`;
+
+    let retries = 3;
+    while (retries > 0) {
+        try {
+            let response;
+            if (provider === 'ollama') {
+                response = await fetch(`http://localhost:11434/v1/complete`, {
+                    method: 'POST',
+                    headers,
+                    body: JSON.stringify({ model: this.settings.model, prompt })
+                });
+            } else {
+                response = await fetch(this.settings.endpoint, {
+                    method: 'POST',
+                    headers,
+                    body: JSON.stringify(body)
+                });
+            }
+
+            if (!response.ok) {
+                if (response.status === 429) {
+                    console.warn("429 Too Many Requests, retrying...");
+                    await new Promise(r => setTimeout(r, 2000));
+                    retries--;
+                    continue;
+                } else if (response.status === 413) {
+                    return "Error: Payload too large. Context truncated.";
+                } else {
+                    throw new Error(`AI HTTP Error: ${response.status}`);
+                }
+            }
+
+            const data = await response.json();
+            if (provider === 'ollama') return data?.completion || '';
+            return data?.choices?.[0]?.message?.content || '';
+        } catch (e) {
+            console.error("AI call error", e);
+            return `Error: ${e.message}`;
+        }
+    }
+    return "Error: too many requests, try later";
+}
+
+
 
     enqueueTask(task) {
         this.taskQueue.push(task);
@@ -255,11 +339,29 @@ class AIAgentView extends ItemView {
     getIcon() { return 'brain'; }
 
     async onOpen() {
+        //Show provider and model selection
+        this.containerEl.addClass('ai-agent-panel');
+        
+        // --- Provider / Model header ---
+        const header = this.containerEl.createDiv({ cls: 'ai-header' });
+        header.setText(`Provider: ${this.plugin.settings.provider} • Model: ${this.plugin.settings.model}`);
+
+
         this.containerEl.empty();
         this.containerEl.addClass('ai-agent-panel');
 
         const chatContainer = this.containerEl.createDiv({ cls: 'ai-chat-container' });
         const messagesEl = chatContainer.createDiv({ cls: 'ai-messages' });
+
+        // --- Scroll to bottom button ---
+        const scrollBtn = chatContainer.createDiv({ cls: 'scroll-bottom-btn', text: '↓' });
+        scrollBtn.style.display = 'none';
+
+        scrollBtn.onclick = () => {
+            messagesEl.scrollTop = messagesEl.scrollHeight;
+            scrollBtn.style.display = 'none';
+        };
+
         const inputWrapper = chatContainer.createDiv({ cls: 'ai-input-wrapper' });
 
         const inputEl = inputWrapper.createEl('textarea', { cls: 'ai-input' });
@@ -285,6 +387,14 @@ class AIAgentView extends ItemView {
                 msgDiv.setText(text);
             }
             setTimeout(() => { messagesEl.scrollTop = messagesEl.scrollHeight; }, 50);
+
+            // Появление кнопки при сдвиге вверх
+            const isUserAtBottom =
+                messagesEl.scrollHeight - messagesEl.scrollTop - messagesEl.clientHeight < 50;
+
+            setTimeout(() => {
+                if (!isUserAtBottom) scrollBtn.style.display = 'block';
+            }, 80);
         };
 
         // WORKING
@@ -381,6 +491,13 @@ class AIAgentView extends ItemView {
             await new Promise(res => setTimeout(res, 50));
         };
 
+        // --- Scroll listener ---
+        messagesEl.addEventListener('scroll', () => {
+            const atBottom =
+                messagesEl.scrollHeight - messagesEl.scrollTop - messagesEl.clientHeight < 100;
+            scrollBtn.style.display = atBottom ? 'none' : 'block';
+        });
+
 
         sendBtn.onclick = sendPrompt;
         inputEl.addEventListener('keydown', e => {
@@ -474,11 +591,13 @@ class AIAgentSettingTab extends PluginSettingTab {
             .setName("AI Provider")
             .setDesc("Choose the AI service provider")
             .addDropdown(drop => {
+                drop.addOption('openai', 'Open AI');
                 drop.addOption('openrouter', 'OpenRouter');
                 drop.addOption('ollama', 'Ollama (local)');
                 drop.addOption('groq', 'Groq Cloud');
                 drop.addOption('mistral', 'Mistral API');
                 drop.addOption('google', 'Google AI Studio');
+                drop.addOption('puter', 'Puter AI');  // ← добавили Puter
                 drop.setValue(this.plugin.settings.provider);
                 drop.onChange(async value => {
                     this.plugin.settings.provider = value;
@@ -487,7 +606,16 @@ class AIAgentSettingTab extends PluginSettingTab {
                 });
             });
 
+
         switch (this.plugin.settings.provider) {
+            case 'puter':
+
+                new Setting(containerEl)
+                    .setName("Puter API Key")
+                    .addText(t => t.setValue(this.plugin.settings.apiKey)
+                        .setPlaceholder("Optional API key")
+                        .onChange(async v => { this.plugin.settings.apiKey = v; await this.plugin.saveSettings(); }));
+            case 'openai':
             case 'openrouter':
             case 'groq':
             case 'mistral':
@@ -512,3 +640,13 @@ class AIAgentSettingTab extends PluginSettingTab {
         }
     }
 };
+
+// Groq
+// https://api.groq.com/openai/v1/chat/completions
+// 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
+// openai/gpt-oss-20b
+
+// OpenRouter
+// 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
+// mistralai/mistral-7b-instruct:free
+// https://openrouter.ai/api/v1/chat/completions

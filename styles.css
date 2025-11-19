@@ -70,3 +70,29 @@
     min-height: 50px;
     resize: vertical;
 }
+
+.ai-header {
+    padding: 6px 10px;
+    font-size: 12px;
+    opacity: 0.7;
+    border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.scroll-bottom-btn {
+    position: absolute;
+    right: 15px;
+    bottom: 80px;
+    background: var(--interactive-accent);
+    color: white;
+    padding: 6px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: bold;
+    z-index: 999;
+    opacity: 0.7;
+    transition: opacity .2s;
+}
+
+.scroll-bottom-btn:hover {
+    opacity: 1;
+}
