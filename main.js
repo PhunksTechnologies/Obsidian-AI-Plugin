@@ -389,12 +389,19 @@ class AIAgentView extends ItemView {
             setTimeout(() => { messagesEl.scrollTop = messagesEl.scrollHeight; }, 50);
 
             // Появление кнопки при сдвиге вверх
-            const isUserAtBottom =
-                messagesEl.scrollHeight - messagesEl.scrollTop - messagesEl.clientHeight < 50;
+            const atBottomBefore =
+                messagesEl.scrollHeight - messagesEl.scrollTop - messagesEl.clientHeight < 10;
 
             setTimeout(() => {
-                if (!isUserAtBottom) scrollBtn.style.display = 'block';
-            }, 80);
+                if (atBottomBefore) {
+                    // если пользователь был внизу → автоскролл, кнопку НЕ показываем
+                    messagesEl.scrollTop = messagesEl.scrollHeight;
+                    scrollBtn.style.display = 'none';
+                } else {
+                    // если был выше → НЕ скроллим, но отображаем кнопку
+                    scrollBtn.style.display = 'block';
+                }
+            }, 50);
         };
 
         // WORKING
@@ -494,8 +501,14 @@ class AIAgentView extends ItemView {
         // --- Scroll listener ---
         messagesEl.addEventListener('scroll', () => {
             const atBottom =
-                messagesEl.scrollHeight - messagesEl.scrollTop - messagesEl.clientHeight < 100;
-            scrollBtn.style.display = atBottom ? 'none' : 'block';
+                messagesEl.scrollHeight - messagesEl.scrollTop - messagesEl.clientHeight < 10;
+
+            // Если пользователь внизу — кнопку не показывать
+            if (atBottom) {
+                scrollBtn.style.display = 'none';
+            } else {
+                scrollBtn.style.display = 'block';
+            }
         });
 
 
