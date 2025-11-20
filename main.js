@@ -341,14 +341,13 @@ class AIAgentView extends ItemView {
     async onOpen() {
         //Show provider and model selection
         this.containerEl.addClass('ai-agent-panel');
-        
-        // --- Provider / Model header ---
-        const header = this.containerEl.createDiv({ cls: 'ai-header' });
-        header.setText(`Provider: ${this.plugin.settings.provider} • Model: ${this.plugin.settings.model}`);
-
 
         this.containerEl.empty();
         this.containerEl.addClass('ai-agent-panel');
+
+        // --- Provider / Model header ---
+        const header = this.containerEl.createDiv({ cls: 'ai-header' });
+        header.setText(`Provider: ${this.plugin.settings.provider} • Model: ${this.plugin.settings.model}`);
 
         const chatContainer = this.containerEl.createDiv({ cls: 'ai-chat-container' });
         const messagesEl = chatContainer.createDiv({ cls: 'ai-messages' });
@@ -653,13 +652,3 @@ class AIAgentSettingTab extends PluginSettingTab {
         }
     }
 };
-
-// Groq
-// https://api.groq.com/openai/v1/chat/completions
-// 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
-// openai/gpt-oss-20b
-
-// OpenRouter
-// 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
-// mistralai/mistral-7b-instruct:free
-// https://openrouter.ai/api/v1/chat/completions

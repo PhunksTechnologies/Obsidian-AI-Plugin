@@ -3,7 +3,7 @@
     flex-direction: column;
     height: 96%;
     cursor: pointer;
-    user-select: all;
+    user-select: text;
 }
 
 .ai-chat-container {
@@ -12,6 +12,7 @@
     flex-direction: column;
     padding: 5px;
     height: -webkit-fill-available;
+    padding-bottom: 1em;
 }
 
 .ai-messages {
