@@ -1,10 +1,10 @@
 const { requestUrl, Plugin, ItemView, PluginSettingTab, Setting, MarkdownRenderer } = require('obsidian');
 
 const DEFAULT_SETTINGS = {
-    provider: 'openrouter', // openrouter, ollama, groq, mistral, google
-    apiKey: '',
-    endpoint: 'https://openrouter.ai/api/v1/chat/completions',
-    model: 'deepseek/deepseek-r1:free',
+    provider: 'Google Gemini', // openrouter, ollama, groq, mistral, google
+    apiKey: 'AIzaSyBfIt1SfcLptBhyDmG-6X6E-YIBFuxGUtc',
+    endpoint: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent',
+    model: 'gemini-3-pro-preview',
     maxContextChars: 5000,
     taskDelayMs: 3000
 };
@@ -609,6 +609,7 @@ class AIAgentSettingTab extends PluginSettingTab {
                 drop.addOption('groq', 'Groq Cloud');
                 drop.addOption('mistral', 'Mistral API');
                 drop.addOption('google', 'Google AI Studio');
+                drop.addOption('google gemini', 'Google Gemini');
                 drop.addOption('puter', 'Puter AI');  // ← добавили Puter
                 drop.setValue(this.plugin.settings.provider);
                 drop.onChange(async value => {
@@ -631,6 +632,19 @@ class AIAgentSettingTab extends PluginSettingTab {
             case 'openrouter':
             case 'groq':
             case 'mistral':
+            case 'google gemini':
+                new Setting(containerEl).setName("API Endpoint")
+                    .addText(t => t.setPlaceholder("https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent")
+                        .setValue(this.plugin.settings.endpoint)
+                        .onChange(async v => { this.plugin.settings.endpoint = v; await this.plugin.saveSettings(); }));
+                new Setting(containerEl).setName("API Key")
+                    .addText(t => t.setPlaceholder("..")
+                        .setValue(this.plugin.settings.apiKey)
+                        .onChange(async v => { this.plugin.settings.apiKey = v; await this.plugin.saveSettings(); }));
+                new Setting(containerEl).setName("Model")
+                    .addText(t => t.setValue(this.plugin.settings.model)
+                        .onChange(async v => { this.plugin.settings.model = v; await this.plugin.saveSettings(); }));
+                break;
             case 'google':
                 new Setting(containerEl).setName("API Endpoint")
                     .addText(t => t.setPlaceholder("https://example.com/api")
